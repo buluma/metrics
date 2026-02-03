@@ -3,6 +3,7 @@ name: Test (presets)
 on:
   pull_request:
     branches: [ presets ]
+  workflow_dispatch: 
   workflow_call:
     inputs:
       ref:
