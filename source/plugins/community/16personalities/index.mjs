@@ -53,7 +53,7 @@ export default async function({login, q, imports, data, account}, {enabled = fal
       const tabs = [...document.querySelectorAll('[data-testid="profile-traits-visualization"] button[role="tab"]')]
       for (const tab of tabs) {
         tab.click()
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+        await new Promise(resolve => globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)))
         const panel = document.querySelector('[data-testid="profile-traits-visualization"] [role="tabpanel"]')
         const category = panel.querySelector(".desc__label").innerText.trim()
         const score = panel.querySelector(".desc__value span").innerText.trim()
