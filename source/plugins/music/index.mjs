@@ -45,6 +45,7 @@ export default async function({login, imports, data, q, account}, {enabled = fal
       },
     }
     let tracks = null
+    let browser = null
 
     //Load inputs
     let {provider, mode, playlist, limit, user, "played.at": played_at, "time.range": time_range, "top.type": top_type, token: _token} = imports.metadata.plugins.music.inputs({data, account, q})
@@ -94,7 +95,7 @@ export default async function({login, imports, data, q, account}, {enabled = fal
       case "playlist": {
         //Start puppeteer and navigate to playlist
         console.debug(`metrics/compute/${login}/plugins > music > starting browser`)
-        const browser = await imports.puppeteer.launch()
+        browser = await imports.puppeteer.launch()
         console.debug(`metrics/compute/${login}/plugins > music > started ${await browser.version()}`)
         const page = await browser.newPage()
         console.debug(`metrics/compute/${login}/plugins > music > loading page`)
@@ -131,7 +132,11 @@ export default async function({login, imports, data, q, account}, {enabled = fal
                   name: tr.querySelector("h3").innerText,
                   artist: tr.querySelector("h4").innerText,
                   //Spotify doesn't provide artworks so we fallback on playlist artwork instead
-                  artwork: window.getComputedStyle(document.querySelector("div[style^='--image-src:']") ?? null)?.backgroundImage.match(/^url\("(?<url>https:...+)"\)$/)?.groups?.url ?? null,
+                  artwork: (() => {
+                    const cover = document.querySelector("div[style^='--image-src:']")
+                    const background = cover && window.getComputedStyle(cover).backgroundImage.match(/^url\("(?<url>https:...+)"\)$/)?.groups?.url
+                    return background ?? document.querySelector("img[src*=spotifycdn], img[src*=scdn\\.co]")?.src ?? null
+                  })(),
                 }))
               ),
             ]
@@ -157,9 +162,10 @@ export default async function({login, imports, data, q, account}, {enabled = fal
           default:
             throw {error: {message: `Unsupported mode "${mode}" for provider "${provider}"`}, ...raw}
         }
-        //Close browser
+        //Close browser after playlist extraction, and in finally if extraction fails
         console.debug(`metrics/compute/${login}/plugins > music > closing browser`)
         await browser.close()
+        browser = null
         //Format tracks
         if (Array.isArray(tracks)) {
           //Tracks
@@ -499,6 +505,14 @@ export default async function({login, imports, data, q, account}, {enabled = fal
   //Handle errors
   catch (error) {
     throw imports.format.error(error)
+  }
+  finally {
+    try {
+      await browser?.close()
+    }
+    catch (error) {
+      console.debug(`metrics/compute/${login}/plugins > music > failed to close browser > ${error}`)
+    }
   }
 }
 

@@ -21,6 +21,7 @@ export default async function({login, q, imports, data, account}, {enabled = fal
     console.debug(`metrics/compute/${login}/plugins > 16personalities > loading ${url}`)
     await page.goto(url, {waitUntil: imports.puppeteer.events})
     await page.waitForSelector(".type__code, [data-testid=\"typeheader\"] .code")
+    await page.waitForSelector('[data-testid="profile-traits-visualization"] button[role="tab"]')
 
     //Fetch raw data
     const raw = await page.evaluate(async() => {
@@ -48,19 +49,19 @@ export default async function({login, q, imports, data, account}, {enabled = fal
       const header = document.querySelector('[data-testid="typeheader"]')
       const type = header.querySelector(".code").innerText.trim()
       const profileName = header.querySelector("h1 span:nth-of-type(2)").innerText.trim()
-      const intro = document.querySelector("#intro")?.innerText.trim() ?? ""
-      const traits = []
-      const tabs = [...document.querySelectorAll('[data-testid="profile-traits-visualization"] button[role="tab"]')]
-      for (const tab of tabs) {
-        tab.click()
-        await new Promise(resolve => globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)))
-        const panel = document.querySelector('[data-testid="profile-traits-visualization"] [role="tabpanel"]')
-        const category = panel.querySelector(".desc__label").innerText.trim()
-        const score = panel.querySelector(".desc__value span").innerText.trim()
-        const value = panel.querySelector(".desc__value").innerText.replace(score, "").trim()
-        const text = panel.querySelector(".desc__p").innerText.trim()
-        traits.push({category, value, score, text})
-      }
+      const intro = document.querySelector("#intro, [data-testid=\"premium-report-article\"]")?.innerText.trim() ?? ""
+      const traits = [...document.querySelectorAll('[data-testid="profile-traits-visualization"] button[role="tab"]')].map(tab => {
+        const description = tab.querySelector('[id^="trait-desc-"]')
+        const match = description?.querySelector("h4")?.innerText.trim().match(/^(.+?):\s*(\d+%)\s*(.+)$/)
+        if (!description || !match)
+          return null
+        return {
+          category: match[1],
+          score: match[2],
+          value: match[3],
+          text: description.querySelector("p")?.innerText.trim() ?? "",
+        }
+      }).filter(Boolean)
 
       return {
         color: getComputedStyle(header.querySelector(".section__wrap")).backgroundColor, //eslint-disable-line no-undef
