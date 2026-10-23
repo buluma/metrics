@@ -20,8 +20,10 @@ export default async function({login, q, imports, data, account}, {enabled = fal
     const page = await browser.newPage()
     console.debug(`metrics/compute/${login}/plugins > 16personalities > loading ${url}`)
     await page.goto(url, {waitUntil: imports.puppeteer.events})
-    await page.waitForSelector(".type__code, [data-testid=\"typeheader\"] .code")
-    await page.waitForSelector('[data-testid="profile-traits-visualization"] button[role="tab"]')
+    await page.waitForFunction(() =>
+      document.querySelector(".type__code")
+      || (document.querySelector('[data-testid="typeheader"] .code') && document.querySelector('[data-testid="profile-traits-visualization"] button[role="tab"]'))
+    )
 
     //Fetch raw data
     const raw = await page.evaluate(async() => {
