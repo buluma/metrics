@@ -29,6 +29,8 @@ const modes = {
 
 //Setup
 export default async function({login, imports, data, q, account}, {enabled = false, token = "", sandbox = false, extras = false} = {}) {
+  let browser = null
+
   //Plugin execution
   try {
     //Check if plugin is enabled and requirements are met
@@ -45,7 +47,6 @@ export default async function({login, imports, data, q, account}, {enabled = fal
       },
     }
     let tracks = null
-    let browser = null
 
     //Load inputs
     let {provider, mode, playlist, limit, user, "played.at": played_at, "time.range": time_range, "top.type": top_type, token: _token} = imports.metadata.plugins.music.inputs({data, account, q})
